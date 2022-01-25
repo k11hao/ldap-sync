@@ -1,0 +1,12 @@
+source:
+  host: ldap://10.2.1.1:8080
+  username: abc
+  password: asbc
+target:
+  - host: ldap://10.2.1.1:8080
+    username: abc
+    password: asbc
+  - host: ldap://10.2.1.1:8081
+    username: abc
+    password: asbc
+period: 120;

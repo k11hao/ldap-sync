@@ -1,19 +1,29 @@
 package com.tqls;
 
+import com.tqls.entity.Conf;
 import com.unboundid.ldap.sdk.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
-import java.text.ParseException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * Hello world!
+ *
  */
 public class App {
-    public static void main(String[] args) throws ParseException {
 
-//        long period  = 60*60*60*1000;
-      long period  = 2*60*60*1000;//2小时
+    private Conf conf;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
+
+    public static void main(String[] args) {
+        App app = new App();
+        app.initConf();
+        long period  = app.conf.getPeriod()*1000*60;
         final String date = null;
         new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -30,7 +40,7 @@ public class App {
         ldapAuthentication.authenricate("025032", "");
     }
 
-    public static void sync(String dateStr)  {
+    public static void sync(String dateStr) {
 
 //        List<SearchResultEntry> result = new ArrayList<>();
         try {
@@ -43,7 +53,7 @@ public class App {
                 c.setTime(date);
             }
             //设置成0点,也就是查1天的
-            c.set(Calendar.HOUR_OF_DAY,0);
+            c.set(Calendar.HOUR_OF_DAY, 0);
             SimpleDateFormat sdf_ldap = new SimpleDateFormat("yyyyMMddHHmmss");
             String syncDate = sdf_ldap.format(c.getTime()) + "Z";
             Filter filter = Filter.createGreaterOrEqualFilter("modifytimestamp", syncDate);
@@ -89,19 +99,28 @@ public class App {
                 }
                 try {
                     LDAPResult result = connection.add(searchResultEntry.getDN(), attributes);
-                    System.out.println(searchResultEntry.getDN()+"更新结果"+result.getResultString());
+                    System.out.println(searchResultEntry.getDN() + "更新结果" + result.getResultString());
                     updateCount++;
                 } catch (Exception err) {
-                    System.out.println("更新失败:"+searchResultEntry.getDN());
+                    System.out.println("更新失败:" + searchResultEntry.getDN());
                     err.printStackTrace();
 
                 }
 
             }
-            System.out.println("更新条数:"+updateCount);
+            System.out.println("更新条数:" + updateCount);
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void initConf() {
+        try (InputStream inputStream = App.class.getResourceAsStream("/app.yml")) {
+            Yaml yaml = new Yaml(new Constructor(Conf.class));
+            conf = yaml.load(inputStream);
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
         }
     }
 
