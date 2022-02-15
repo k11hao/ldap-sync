@@ -9,4 +9,4 @@ target:
   - host: ldap://10.2.1.1:8081
     username: abc
     password: asbc
-period: 120;
+period: 120

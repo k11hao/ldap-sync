@@ -2,8 +2,17 @@ package com.tqls.entity;
 
 import java.util.List;
 
+/**
+ * 配置信息
+ */
 public class Conf {
+    /**
+     * 数据源
+     */
     private Server source;
+    /**
+     * 同步到目标服务器信息
+     */
     private List<Server> target;
     /**
      * 分钟

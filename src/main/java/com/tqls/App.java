@@ -32,7 +32,6 @@ public class App {
             }
         }, 1000,period);
 
-
     }
 
     public static void login() {
@@ -42,7 +41,6 @@ public class App {
 
     public static void sync(String dateStr) {
 
-//        List<SearchResultEntry> result = new ArrayList<>();
         try {
 
             String dn = "ou=Internal,ou=People,dc=tqls,dc=cn";
