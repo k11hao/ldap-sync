@@ -15,6 +15,9 @@ import javax.naming.ldap.Control;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 
+/**
+ * 自带ldap验证测试
+ */
 public class LDAPAuthentication {
 
     private static final Logger logger = LoggerFactory.getLogger(LDAPAuthentication.class);
