@@ -1,5 +1,8 @@
 package com.tqls;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Hashtable;
 
 import javax.naming.AuthenticationException;
@@ -13,6 +16,9 @@ import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 
 public class LDAPAuthentication {
+
+    private static final Logger logger = LoggerFactory.getLogger(LDAPAuthentication.class);
+
     private final String URL = "ldap://192.168.50.135:1389/";
     private final String BASEDN = "ou=People,dc=tqls,dc=cn";
     private final String FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
@@ -56,11 +62,11 @@ public class LDAPAuthentication {
                     userDN += si.getName();
                     userDN += "," + BASEDN;
                 } else {
-                    System.out.println(obj);
+                    logger.info(obj.toString());
                 }
             }
         } catch (Exception e) {
-            System.out.println("查找用户时产生异常。");
+            logger.error("查找用户时产生异常。", e);
             e.printStackTrace();
         }
 
