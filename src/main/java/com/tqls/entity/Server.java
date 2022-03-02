@@ -4,6 +4,24 @@ public class Server {
     private String host;
     private String username;
     private String password;
+    private int port;
+    private String dn;
+
+    public String getDn() {
+        return dn;
+    }
+
+    public void setDn(String dn) {
+        this.dn = dn;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
 
     public String getHost() {
         return host;

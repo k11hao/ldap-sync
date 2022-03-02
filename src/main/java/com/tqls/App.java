@@ -1,6 +1,7 @@
 package com.tqls;
 
 import com.tqls.entity.Conf;
+import com.tqls.entity.Server;
 import com.unboundid.ldap.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,14 +24,14 @@ public class App {
     public static void main(String[] args) {
         App app = new App();
         app.initConf();
-        long period  = app.conf.getPeriod()*1000*60;
+        long period = app.conf.getPeriod() * 1000 * 60;
         final String date = null;
         new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                sync(date);
+                app.sync(date);
             }
-        }, 1000,period);
+        }, 1000, period);
 
     }
 
@@ -39,7 +40,7 @@ public class App {
         ldapAuthentication.authenricate("025032", "");
     }
 
-    public static void sync(String dateStr) {
+    public void sync(String dateStr) {
 
         try {
 
@@ -57,9 +58,14 @@ public class App {
             Filter filter = Filter.createGreaterOrEqualFilter("modifytimestamp", syncDate);
 
 
-            LDAPConnection connection_prd = new LDAPConnection("*", 1389, "cn=Directory Manager", "");
+            LDAPConnection connection_prd = new LDAPConnection(conf.getSource().getHost(), conf.getSource().getPort(), conf.getSource().getDn(), conf.getSource().getPassword());
 
-            LDAPConnection connection = new LDAPConnection("*", 389, "cn=Directory Manager", "");
+            List<LDAPConnection> targetConnList = new ArrayList<>();
+
+            for (Server server : conf.getTarget()) {
+                LDAPConnection targetConn = new LDAPConnection(server.getHost(), server.getPort(), server.getDn(), server.getPassword());
+                targetConnList.add(targetConn);
+            }
 
             SearchScope scope = SearchScope.SUB;
             /**
@@ -82,34 +88,37 @@ public class App {
                 List<Attribute> attributes = new ArrayList<>();
 
                 for (Attribute attribute : attributesOld) {
-                    if (skip.contains(attribute.getName())) continue;
+                    if (skip.contains(attribute.getName())) {
+                        continue;
+                    }
                     attributes.add(attribute);
                 }
-                //Attribute(name=modifyTimestamp, values={'20220119052735Z'})
-
 
                 Filter user_filter = Filter.createEqualityFilter("uid", searchResultEntry.getAttributeValue("uid"));
                 SearchRequest user_searchRequest = new SearchRequest(dn, scope, user_filter);
-                SearchResult user_searchResult = connection.search(user_searchRequest);
-                if (user_searchResult.getEntryCount() > 0) {
-                    //如果有要提前删除
-                    connection.delete(searchResultEntry.getDN());
-                }
-                try {
-                    LDAPResult result = connection.add(searchResultEntry.getDN(), attributes);
-                    System.out.println(searchResultEntry.getDN() + "更新结果" + result.getResultString());
-                    updateCount++;
-                } catch (Exception err) {
-                    System.out.println("更新失败:" + searchResultEntry.getDN());
-                    err.printStackTrace();
 
+                for (LDAPConnection targetConn : targetConnList) {
+                    SearchResult user_searchResult = targetConn.search(user_searchRequest);
+                    if (user_searchResult.getEntryCount() > 0) {
+                        //如果有要提前删除
+                        targetConn.delete(searchResultEntry.getDN());
+                    }
+                    try {
+                        LDAPResult result = targetConn.add(searchResultEntry.getDN(), attributes);
+                        LOGGER.info(searchResultEntry.getDN() + "更新结果" + result.getResultString());
+                        updateCount++;
+                    } catch (Exception err) {
+                        System.out.println("更新失败:" + searchResultEntry.getDN());
+                        err.printStackTrace();
+
+                    }
                 }
 
             }
-            System.out.println("更新条数:" + updateCount);
+            LOGGER.info("更新条数:" + updateCount);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("同步失败", e);
         }
     }
 
