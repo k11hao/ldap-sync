@@ -3,6 +3,13 @@ package com.tqls;
 import com.tqls.entity.Conf;
 import com.tqls.entity.Server;
 import com.unboundid.ldap.sdk.*;
+import io.vertx.core.Vertx;
+import io.vertx.core.WorkerExecutor;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.Route;
+import io.vertx.ext.web.Router;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -24,14 +31,57 @@ public class App {
     public static void main(String[] args) {
         App app = new App();
         app.initConf();
-        long period = app.conf.getPeriod() * 1000 * 60;
-        final String date = null;
-        new Timer().scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                app.sync(date);
-            }
-        }, 1000, period);
+        Timer timer;
+        try {
+            long period = app.conf.getPeriod() * 1000 * 60;
+            final String date = null;
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    app.sync(date, null);
+                }
+            }, 1000, period);
+
+        } catch (Exception err) {
+            LOGGER.error("", err);
+        }
+
+
+        Vertx vertx = Vertx.vertx();
+        HttpServer server = vertx.createHttpServer();
+        Router router = Router.router(vertx);
+        Route route2 = router.route("/api/sync");
+        route2.handler(ctx -> {
+            HttpServerResponse response = ctx.response();
+            HttpServerRequest request = ctx.request();
+            String name = request.getParam("name");
+            response.setChunked(true);
+
+
+            WorkerExecutor executor = vertx.createSharedWorkerExecutor("my-worker-sync");
+
+            executor.executeBlocking(future -> {
+                int count = app.sync("1997-01-01", name);
+                future.complete(count);
+            }, res -> {
+                response.write("<!DOCTYPE html>\n" +
+                        "<html>\n" +
+                        "<head>\n" +
+                        "<meta charset=\"UTF-8\">\n" +
+                        "<title>更新条数</title>\n" +
+                        "</head>\n" +
+                        "<body>\n" +
+                        "<p>更新条数！" + res.result() + "</p>\n" +
+                        "</body>\n" +
+                        "</html>");
+
+                ctx.response().end();
+            });
+
+        });
+
+        server.requestHandler(router).listen(8080);
 
     }
 
@@ -40,8 +90,9 @@ public class App {
         ldapAuthentication.authenricate("025032", "");
     }
 
-    public void sync(String dateStr) {
+    public int sync(String dateStr, String name) {
 
+        int updateCount = 0;
         try {
 
             String dn = "ou=Internal,ou=People,dc=tqls,dc=cn";
@@ -55,8 +106,14 @@ public class App {
             c.set(Calendar.HOUR_OF_DAY, 0);
             SimpleDateFormat sdf_ldap = new SimpleDateFormat("yyyyMMddHHmmss");
             String syncDate = sdf_ldap.format(c.getTime()) + "Z";
-            Filter filter = Filter.createGreaterOrEqualFilter("modifytimestamp", syncDate);
-
+            Filter filter;
+            Filter datefilter = Filter.createGreaterOrEqualFilter("modifytimestamp", syncDate);
+            if (name != null && !"".equals(name)) {
+                Filter userFilter = Filter.createEqualityFilter("uid", name);
+                filter = Filter.createANDFilter(userFilter, datefilter);
+            } else {
+                filter = Filter.createANDFilter(datefilter);
+            }
 
             LDAPConnection connection_prd = new LDAPConnection(conf.getSource().getHost(), conf.getSource().getPort(), conf.getSource().getDn(), conf.getSource().getPassword());
 
@@ -74,10 +131,11 @@ public class App {
              */
             SearchRequest searchRequest = new SearchRequest(dn, scope, filter, new String[]{"*", "createTimestamp", "modifyTimestamp", "creatorsName", "modifiersName"});
             SearchResult searchResult = connection_prd.search(searchRequest);
+
             System.out.println("查询结果数:" + searchResult.getEntryCount());
-            int updateCount = 0;
+
             if (searchResult.getEntryCount() <= 0) {
-                return;
+                return 0;
             }
             List<String> skip = Arrays.asList("createTimestamp", "modifyTimestamp", "creatorsName", "modifiersName");
 
@@ -110,7 +168,6 @@ public class App {
                     } catch (Exception err) {
                         System.out.println("更新失败:" + searchResultEntry.getDN());
                         err.printStackTrace();
-
                     }
                 }
 
@@ -120,6 +177,7 @@ public class App {
         } catch (Exception e) {
             LOGGER.error("同步失败", e);
         }
+        return updateCount;
     }
 
     private void initConf() {

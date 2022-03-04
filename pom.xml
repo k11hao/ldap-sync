@@ -52,6 +52,12 @@
             <version>1.29</version>
         </dependency>
 
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web</artifactId>
+            <version>4.2.5</version>
+        </dependency>
+
     </dependencies>
 
     <build>
