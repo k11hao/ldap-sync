@@ -8,13 +8,15 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.templ.thymeleaf.ThymeleafTemplateEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -36,12 +38,14 @@ public class App {
             long period = app.conf.getPeriod() * 1000 * 60;
             final String date = null;
             timer = new Timer();
-            timer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    app.sync(date, null);
-                }
-            }, 1000, period);
+            if(app.conf.isStartEnable()){
+                timer.scheduleAtFixedRate(new TimerTask() {
+                    @Override
+                    public void run() {
+                        app.sync(date, null);
+                    }
+                }, 1000, period);
+            }
 
         } catch (Exception err) {
             LOGGER.error("", err);
@@ -51,8 +55,33 @@ public class App {
         Vertx vertx = Vertx.vertx();
         HttpServer server = vertx.createHttpServer();
         Router router = Router.router(vertx);
-        Route route2 = router.route("/api/sync");
-        route2.handler(ctx -> {
+
+        ThymeleafTemplateEngine thymeleafTemplateEngine = ThymeleafTemplateEngine.create(vertx);
+
+        //配置Router解析url
+        router.route("/").handler(
+                req -> {
+                    Map obj = new HashMap();
+                    obj.put("name", "Hello World from backend");
+
+                    //第三步 ThymeleafTemplateEngine 直接 render
+                    thymeleafTemplateEngine.render(obj,
+                            "templates/index.html",
+                            bufferAsyncResult -> {
+                                if (bufferAsyncResult.succeeded()){
+                                    req.response()
+                                            .putHeader("content-type", "text/html")
+                                            .end(bufferAsyncResult.result());
+                                }else{
+                                    LOGGER.error("失败");
+                                }
+                            });
+                }
+        );
+
+
+
+        router.route("/api/sync").handler(ctx -> {
             HttpServerResponse response = ctx.response();
             HttpServerRequest request = ctx.request();
             String name = request.getParam("name");
@@ -181,7 +210,15 @@ public class App {
     }
 
     private void initConf() {
-        try (InputStream inputStream = App.class.getResourceAsStream("/app.yml")) {
+        try {
+
+            InputStream inputStream;
+            String path = System.getProperty("user.dir") + "/app.yml";
+            if (new File(path).exists()) {
+                inputStream = new FileInputStream(path);
+            } else {
+                inputStream = App.class.getResourceAsStream("/app.yml");
+            }
             Yaml yaml = new Yaml(new Constructor(Conf.class));
             conf = yaml.load(inputStream);
         } catch (Exception e) {

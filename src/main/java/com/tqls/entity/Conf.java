@@ -19,6 +19,20 @@ public class Conf {
      */
     private long period;
 
+    /**
+     * 是否立即启动
+     * @return
+     */
+    private boolean startEnable;
+
+    public boolean isStartEnable() {
+        return startEnable;
+    }
+
+    public void setStartEnable(boolean startEnable) {
+        this.startEnable = startEnable;
+    }
+
     public Server getSource() {
         return source;
     }

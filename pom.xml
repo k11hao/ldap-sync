@@ -58,6 +58,12 @@
             <version>4.2.5</version>
         </dependency>
 
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web-templ-thymeleaf</artifactId>
+            <version>4.2.5</version>
+        </dependency>
+
     </dependencies>
 
     <build>
