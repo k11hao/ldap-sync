@@ -1,18 +1,19 @@
 source:
-  host: ldap://10.2.1.1:8080
-  port: 8080
+  host: 10.7.6.79
+  port: 1389
   dn: cn=Directory Manager
-  username: abc
-  password: asbc
+  username: cn=Directory Manager
+  password: IDMtqls@2020
 target:
-  - host: ldap://10.2.1.1:8080
+  - host: 10.7.6.85
     dn: cn=Directory Manager
-    port: 8080
-    username: abc
-    password: asbc
-  - host: ldap://10.2.1.1:8081
-    port: 8080
-    dn: cn=Directory Manager
-    username: abc
-    password: asbc
+    port: 1389
+    username: cn=Directory Manager
+    password: IDMtqls@2020
+#  - host: ldap://10.2.1.1:8081
+#    port: 8080
+#    dn: cn=Directory Manager
+#    username: abc
+#    password: asbc
 period: 120
+startEnable: false

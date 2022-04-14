@@ -10,6 +10,8 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.templ.thymeleaf.ThymeleafTemplateEngine;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -17,6 +19,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -30,7 +33,18 @@ public class App {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
 
-    public static void main(String[] args) {
+    static {
+        try {
+            InputStream inputStream = App.class.getResourceAsStream("/log4j2.xml");
+            ConfigurationSource source = new ConfigurationSource(inputStream);
+            Configurator.initialize(null, source);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) throws FileNotFoundException {
+
         App app = new App();
         app.initConf();
         Timer timer;
@@ -38,7 +52,7 @@ public class App {
             long period = app.conf.getPeriod() * 1000 * 60;
             final String date = null;
             timer = new Timer();
-            if(app.conf.isStartEnable()){
+            if (app.conf.isStartEnable()) {
                 timer.scheduleAtFixedRate(new TimerTask() {
                     @Override
                     public void run() {
@@ -68,17 +82,23 @@ public class App {
                     thymeleafTemplateEngine.render(obj,
                             "templates/index.html",
                             bufferAsyncResult -> {
-                                if (bufferAsyncResult.succeeded()){
+                                if (bufferAsyncResult.succeeded()) {
                                     req.response()
                                             .putHeader("content-type", "text/html")
                                             .end(bufferAsyncResult.result());
-                                }else{
+                                } else {
                                     LOGGER.error("失败");
                                 }
                             });
                 }
         );
 
+
+        router.route("/api/log").handler(ctx -> {
+            HttpServerResponse response = ctx.response();
+            HttpServerRequest request = ctx.request();
+            System.out.println(request.getParam("test"));
+        });
 
 
         router.route("/api/sync").handler(ctx -> {
@@ -211,7 +231,6 @@ public class App {
 
     private void initConf() {
         try {
-
             InputStream inputStream;
             String path = System.getProperty("user.dir") + "/app.yml";
             if (new File(path).exists()) {
