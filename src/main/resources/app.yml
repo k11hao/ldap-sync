@@ -1,3 +1,4 @@
+serverPort: 8080
 source:
   host: 10.7.6.79
   port: 1389

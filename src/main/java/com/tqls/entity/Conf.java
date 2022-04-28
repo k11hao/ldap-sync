@@ -6,6 +6,7 @@ import java.util.List;
  * 配置信息
  */
 public class Conf {
+
     /**
      * 数据源
      */
@@ -18,6 +19,16 @@ public class Conf {
      * 分钟
      */
     private long period;
+
+    private int serverPort;
+
+    public int getServerPort() {
+        return serverPort;
+    }
+
+    public void setServerPort(int serverPort) {
+        this.serverPort = serverPort;
+    }
 
     /**
      * 是否立即启动

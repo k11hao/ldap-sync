@@ -130,7 +130,7 @@ public class App {
 
         });
 
-        server.requestHandler(router).listen(8080);
+        server.requestHandler(router).listen(app.conf.getServerPort());
 
     }
 

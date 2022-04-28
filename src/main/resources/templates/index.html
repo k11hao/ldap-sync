@@ -5,10 +5,24 @@
     <title>Title</title>
 </head>
 <body>
-<h1 th:text="${name}">
 
 
-</h1>
+用户名<input id="username" value="" />
+<button id="btnSync">同步</button>
+<div id="divResult"></div>
+
 <script src="https://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+<script type="text/javascript">
+
+$(function(){
+    $('#btnSync').on('click',function(){
+        $.get('/api/sync?name='+$('#username').val(),function(rs){
+            $('#divResult').html(rs)
+        },'json');
+    })
+})
+
+
+</script>
 </body>
 </html>
